@@ -1,0 +1,1 @@
+nuget pack LocalBitcoinsApi.csproj -properties Configuration=Release -IncludeReferencedProjects 

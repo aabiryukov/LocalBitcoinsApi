@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Alexander Biryukov</authors>
+    <owners>aabiryukov</owners>
+    <licenseUrl>https://raw.githubusercontent.com/aabiryukov/LocalBitcoinsApi/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/aabiryukov/LocalBitcoinsApi/</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/aabiryukov/LocalBitcoinsApi/master/NugetPackageLogo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright (c) Alexander Biryukov 2017</copyright>
+    <tags>LocalBitcoins Bitcoin API</tags>
+  </metadata>
+</package>
