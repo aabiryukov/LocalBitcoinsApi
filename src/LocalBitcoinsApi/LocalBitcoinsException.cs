@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.Runtime.Serialization;
-using System.Security.Permissions;
 
 namespace LocalBitcoins
 {
@@ -18,8 +17,8 @@ namespace LocalBitcoins
             : base(
             string.Format(
                 CultureInfo.InvariantCulture,
-                "Failed request {0}. Message: {1}. Error Code: {2}",
-                callerMethod, (string)json.error.message, (int)json.error.error_code)
+                "Failed request {0}. Message: {1}. Error Code: {2}. Details: {3}",
+                callerMethod, (string)json.error.message, (int)json.error.error_code, (string)json.error.error_lists?.ToString())
                   )
         {
             RequestMethod = callerMethod;
@@ -49,22 +48,5 @@ namespace LocalBitcoins
         {
             RequestMethod = callerMethod;
         }
-
-	    protected LocalBitcoinsException(SerializationInfo info, StreamingContext context)
-		    : base(info, context)
-	    {
-	    }
-
-        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            if (info == null)
-                throw new ArgumentNullException(nameof(info));
-
-            base.GetObjectData(info, context);
-
-            info.AddValue("RequestMethod", RequestMethod);
-        }
-
     }
 }

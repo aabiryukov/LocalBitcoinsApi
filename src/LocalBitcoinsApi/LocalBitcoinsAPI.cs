@@ -17,19 +17,22 @@ namespace LocalBitcoins
     // ReSharper disable once InconsistentNaming
     public sealed class LocalBitcoinsAPI
     {
+        private const string DefaultApiUrl = "https://localbitcoins.net/";
+        private const int DefaultApiTimeoutSec = 10;
+
         private enum RequestType
         {
             Get,
             Post
         }
 
-        private class NameValueDictionary : Dictionary<string, string>{}
+        private class NameValueDictionary : Dictionary<string, string> { }
 
         private static readonly DateTime st_unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         private static long GetCurrentUnixTimestampMillis()
         {
-            return (long) (DateTime.UtcNow - st_unixEpoch).TotalMilliseconds;
+            return (long)(DateTime.UtcNow - st_unixEpoch).TotalMilliseconds;
         }
 
         private static string ByteToString(IEnumerable<byte> buff)
@@ -37,14 +40,27 @@ namespace LocalBitcoins
             return buff.Aggregate("", (current, t) => current + t.ToString("X2", CultureInfo.InvariantCulture));
         }
 
-        private string GetSignature(string apiCommand, string paramsStr, out string nonce)
+        private string GetSignature(string apiCommand, Dictionary<string, string> args, bool isGetRequest, string nonce)
         {
+            return GetSignature(m_accessKey, m_secretKey, apiCommand, args, isGetRequest, nonce);
+        }
+
+        public static string GetSignature(string accessKey, string secretKey, string apiCommand, Dictionary<string, string> args, bool isGetRequest, string nonce)
+        {
+            string paramsStr = null;
+
+            if (args != null && args.Any())
+            {
+                paramsStr = UrlEncodeParams(args);
+                if (isGetRequest)
+                    paramsStr = "?" + paramsStr;
+            }
+
             var encoding = new ASCIIEncoding();
-            var secretByte = encoding.GetBytes(m_secretKey);
+            var secretByte = encoding.GetBytes(secretKey);
             using (var hmacsha256 = new HMACSHA256(secretByte))
             {
-                nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
-                var message = nonce + m_accessKey + apiCommand;
+                var message = nonce + accessKey + apiCommand;
                 if (paramsStr != null)
                 {
                     message += paramsStr;
@@ -75,7 +91,7 @@ namespace LocalBitcoins
                 var messageByte = encoding.GetBytes(message);
                 if (paramBytes != null)
                 {
-                    messageByte = CombineBytes(messageByte,  paramBytes);
+                    messageByte = CombineBytes(messageByte, paramBytes);
                 }
 
                 var signature = ByteToString(hmacsha256.ComputeHash(messageByte));
@@ -91,7 +107,7 @@ namespace LocalBitcoins
         }
 
 
-        private static string UrlEncodeParams(NameValueDictionary args)
+        private static string UrlEncodeParams(Dictionary<string, string> args)
         {
             var sb = new StringBuilder();
 
@@ -99,34 +115,29 @@ namespace LocalBitcoins
                 args.Select(
                     x =>
                         string.Format(CultureInfo.InvariantCulture, "{0}={1}", UrlEncodeString(x.Key), UrlEncodeString(x.Value))).ToArray();
-            
+
             sb.Append(string.Join("&", arr));
             return sb.ToString();
         }
 
         private dynamic CallApi(string apiCommand, RequestType requestType = RequestType.Get,
-            NameValueDictionary args = null, bool getAsBinary = false)
+            Dictionary<string, string> args = null, bool getAsBinary = false)
         {
             HttpContent httpContent = null;
-            string paramsStr = null;
 
             if (args != null && args.Any())
             {
-                paramsStr = UrlEncodeParams(args);
-                if (requestType == RequestType.Get)
-                    paramsStr = "?" + paramsStr;
-
                 httpContent = new FormUrlEncodedContent(args);
             }
 
             try
             {
-                string nonce;
-                var signature = GetSignature(apiCommand, paramsStr, out nonce);
+                string nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
+                var signature = GetSignature(apiCommand, args, requestType == RequestType.Get, nonce);
 
                 using (var request = new HttpRequestMessage(
                     requestType == RequestType.Get ? HttpMethod.Get : HttpMethod.Post,
-                    new Uri(WebApi.BaseAddress + apiCommand)
+                    new Uri(m_client.BaseAddress, apiCommand)
                     ))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -135,7 +146,7 @@ namespace LocalBitcoins
                     request.Headers.Add("Apiauth-Signature", signature);
                     request.Content = httpContent;
 
-                    var response = WebApi.Client.SendAsync(request).Result;
+                    var response = m_client.SendAsync(request).Result;
                     if (!response.IsSuccessStatusCode)
                     {
                         var resultAsString = response.Content.ReadAsStringAsync().Result;
@@ -175,7 +186,7 @@ namespace LocalBitcoins
                     }
                 }
 
-                if(fileName != null)
+                if (fileName != null)
                 {
                     var fileBytes = File.ReadAllBytes(fileName);
                     httpContent.Add(new ByteArrayContent(fileBytes), "\"document\"",
@@ -189,7 +200,7 @@ namespace LocalBitcoins
 
                 using (var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    new Uri(WebApi.BaseAddress + apiCommand)
+                    new Uri(m_client.BaseAddress + apiCommand)
                     ))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -198,7 +209,7 @@ namespace LocalBitcoins
                     request.Headers.Add("Apiauth-Signature", signature);
                     request.Content = httpContent;
 
-                    var response = WebApi.Client.SendAsync(request).Result;
+                    var response = m_client.SendAsync(request).Result;
                     if (!response.IsSuccessStatusCode)
                     {
                         var resultAsString = response.Content.ReadAsStringAsync().Result;
@@ -215,57 +226,16 @@ namespace LocalBitcoins
             }
         }
 
-        private static class WebApi
-        {
-/*
-            private class LoggingHandler : DelegatingHandler
-            {
-                public LoggingHandler(HttpMessageHandler innerHandler)
-                    : base(innerHandler)
-                {
-                }
+        //		private class NameValueDictionary : SortedDictionary<string, string>{}
 
-                protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-                {
-                    Console.WriteLine("Request:");
-                    Console.WriteLine(request.ToString());
-                    if (request.Content != null)
-                    {
-                        Console.WriteLine(await request.Content.ReadAsStringAsync());
-                    }
-                    Console.WriteLine();
-
-                    var response = await base.SendAsync(request, cancellationToken);
-
-                    Console.WriteLine("Response:");
-                    Console.WriteLine(response.ToString());
-                    if (response.Content != null)
-                    {
-                        Console.WriteLine(await response.Content.ReadAsStringAsync());
-                    }
-                    Console.WriteLine();
-
-                    return response;
-                }
-            }
-*/
-            private const int ApiTimeoutSeconds = 10;
-
-            public static string BaseAddress { get; } = "https://localbitcoins.net/";
-
-            internal static HttpClient Client { get; } = new HttpClient(/*new LoggingHandler(new HttpClientHandler())*/)
-            {
-                BaseAddress = new Uri(BaseAddress), // apiv3
-                Timeout = TimeSpan.FromSeconds(ApiTimeoutSeconds)
-            };
-        }
-
-//		private class NameValueDictionary : SortedDictionary<string, string>{}
+        //        private const int ApiTimeoutSeconds = 10;
+        //        private readonly string BaseAddress;
+        private readonly HttpClient m_client;
 
         private readonly string m_accessKey;
         private readonly string m_secretKey;
         //constants
-//        private const int BTCChinaConnectionLimit = 1;
+        //        private const int BTCChinaConnectionLimit = 1;
 
 
         /// <summary>
@@ -273,13 +243,20 @@ namespace LocalBitcoins
         /// </summary>
         /// <param name="accessKey">Your Access Key</param>
         /// <param name="secretKey">Your Secret Key</param>
-        public LocalBitcoinsAPI(string accessKey, string secretKey)
+        public LocalBitcoinsAPI(string accessKey, string secretKey, string baseAddress = DefaultApiUrl, int apiTimeout = DefaultApiTimeoutSec)
         {
             m_accessKey = accessKey;
             m_secretKey = secretKey;
+
+            m_client = new HttpClient(/*new LoggingHandler(new HttpClientHandler())*/)
+            {
+                BaseAddress = new Uri(baseAddress), // apiv3
+                Timeout = TimeSpan.FromSeconds(apiTimeout)
+            };
+
             // HttpWebRequest setups
-//            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //for https
-//            ServicePointManager.DefaultConnectionLimit = 1; //one concurrent connection is allowed for this server atm.
+            //            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //for https
+            //            ServicePointManager.DefaultConnectionLimit = 1; //one concurrent connection is allowed for this server atm.
             //ServicePointManager.UseNagleAlgorithm = false;
         }
 
@@ -360,11 +337,11 @@ namespace LocalBitcoins
 
         public byte[] GetContactMessageAttachment(string attachmentUrl)
         {
-            if(string.IsNullOrEmpty(attachmentUrl))
+            if (string.IsNullOrEmpty(attachmentUrl))
                 throw new ArgumentNullException(nameof(attachmentUrl));
 
             var index = attachmentUrl.IndexOf("/api/", StringComparison.OrdinalIgnoreCase);
-            if(index < 0)
+            if (index < 0)
                 throw new ArgumentOutOfRangeException(nameof(attachmentUrl));
 
             return CallApi(attachmentUrl.Remove(0, index), RequestType.Get, null, true);
@@ -377,22 +354,22 @@ namespace LocalBitcoins
             return CallApi("/api/contact_mark_as_paid/" + contactId + "/");
         }
 
-/*
-        // Post a message to contact
-        public dynamic PostMessageToContact(string contactId, string message)
-        {
-            var args = new NameValueDictionary
-            {
-                {"msg", message},
-            };
-            return CallApi("/api/contact_message_post/" + contactId + "/", RequestType.Post, args);
-        }
-*/
+        /*
+                // Post a message to contact
+                public dynamic PostMessageToContact(string contactId, string message)
+                {
+                    var args = new NameValueDictionary
+                    {
+                        {"msg", message},
+                    };
+                    return CallApi("/api/contact_message_post/" + contactId + "/", RequestType.Post, args);
+                }
+        */
 
         // Post a message to contact
         public dynamic PostMessageToContact(string contactId, string message, string attachFileName = null)
         {
-            if(attachFileName != null && !File.Exists(attachFileName))
+            if (attachFileName != null && !File.Exists(attachFileName))
                 throw new LocalBitcoinsException("PostMessageToContact", "File not found: " + attachFileName);
 
             NameValueDictionary args = null;
@@ -576,42 +553,87 @@ namespace LocalBitcoins
             return CallApi("/api/ad-delete/" + adId + "/", RequestType.Post);
         }
 
+        private static Dictionary<string, string> ParseAdData(dynamic adData)
+        {
+            var args = new Dictionary<string, string>
+                {
+                    {"lat", (string)adData.lat},
+                    {"price_equation", (string)adData.price_equation},
+                    {"lon", (string)adData.lon},
+                    {"countrycode", (string)adData.countrycode},
+
+                    {"min_amount", (string)adData.min_amount},
+                    {"max_amount", (string)adData.max_amount},
+
+                    {"msg", (string)adData.msg},
+                    {"opening_hours", (string)adData.opening_hours},
+                    {"require_identification", (string)adData.require_identification},
+                    {"sms_verification_required", (string)adData.sms_verification_required},
+                    {"require_trusted_by_advertiser", (string)adData.require_trusted_by_advertiser},
+                    {"trusted_required", (string)adData.trusted_required},
+                    {"track_max_amount", (string)adData.track_max_amount},
+                    {"email", (string)adData.email},
+                };
+
+            string phone_number = adData.account_details?.phone_number;
+            if (adData.account_details?.phone_number != null)
+            {
+                args["details-phone_number"] = phone_number;
+            }
+
+            return args;
+        }
+
         // Edit ad visibility
         public dynamic EditAdVisiblity(string adId, bool visible)
         {
             var oldAd = GetAd(adId);
-//            Debug.WriteLine(ad.ToString());
+            //            Debug.WriteLine(ad.ToString());
 
-            if ((int) oldAd.data.ad_count < 1)
+            if ((int)oldAd.data.ad_count < 1)
             {
                 throw new LocalBitcoinsException("EditAdVisiblity", "Ad not found. Id=" + adId);
             }
 
-            var adData = oldAd.data.ad_list[0].data;
-
-            var args = new NameValueDictionary
-            {
-                {"lat", (string)adData.lat},
-                {"price_equation", (string)adData.price_equation},
-                {"lon", (string)adData.lon},
-                {"countrycode", (string)adData.countrycode},
-
-                {"min_amount", (string)adData.min_amount},
-                {"max_amount", (string)adData.max_amount},
-
-                {"msg", (string)adData.msg},
-                {"opening_hours", (string)adData.opening_hours},
-                {"require_identification", (string)adData.require_identification},
-                {"sms_verification_required", (string)adData.sms_verification_required},
-                {"require_trusted_by_advertiser", (string)adData.require_trusted_by_advertiser},
-                {"trusted_required", (string)adData.trusted_required},
-                {"track_max_amount", (string)adData.track_max_amount},
-                {"email", (string)adData.email},
-            };
+            var args = ParseAdData(oldAd.data.ad_list[0].data);
 
             if (visible)
             {
                 args.Add("visible", "1");
+            }
+
+            return CallApi("/api/ad/" + adId + "/", RequestType.Post, args);
+        }
+
+        // Edit ad
+        public dynamic EditAd(string adId, Dictionary<string, string> values, bool preloadAd = false)
+        {
+            if (values == null)
+                throw new ArgumentNullException(nameof(values));
+
+            Dictionary<string, string> args;
+
+            if (preloadAd)
+            {
+                var oldAd = GetAd(adId);
+                //            Debug.WriteLine(ad.ToString());
+
+                if ((int)oldAd.data.ad_count < 1)
+                {
+                    throw new LocalBitcoinsException("EditAd", "Ad not found. Id=" + adId);
+                }
+
+                args = ParseAdData(oldAd.data.ad_list[0].data);
+
+                // Copy user values
+                foreach (var val in values)
+                {
+                    args[val.Key] = val.Value;
+                }
+            }
+            else
+            {
+                args = values;
             }
 
             return CallApi("/api/ad/" + adId + "/", RequestType.Post, args);
@@ -627,6 +649,56 @@ namespace LocalBitcoins
         public dynamic NotificationMarkAsRead(string notificationId)
         {
             return CallApi("/api/notifications/mark_as_read/" + notificationId + "/", RequestType.Post);
+        }
+
+        private dynamic CallPublicApi(string requestUri)
+        {
+            var response = m_client.GetAsync(requestUri).Result;
+            var resultAsString = response.Content.ReadAsStringAsync().Result;
+            var json = JsonConvert.DeserializeObject<dynamic>(resultAsString);
+            return json;
+        }
+
+        /// <summary>
+        /// This API returns buy Bitcoin online ads. It is closely modeled after the online ad listings on LocalBitcoins.com.
+        /// </summary>
+        /// <param name="currency">Three letter currency code</param>
+        /// <param name="paymentMethod">An example of a valid argument is national-bank-transfer.</param>
+        /// <param name="page">Page number, by default 1</param>
+        /// <returns>Ads are returned in the same structure as /api/ads/.</returns>
+        public dynamic PublicMarket_BuyBitcoinsOnlineByCurrency(string currency, string paymentMethod = null, int page = 1)
+        {
+            var uri = "/buy-bitcoins-online/" + currency + "/";
+            if (paymentMethod != null)
+                uri += paymentMethod + "/";
+
+            uri += ".json";
+
+            if (page > 1)
+                uri += "?page=" + page.ToString(CultureInfo.InvariantCulture);
+
+            return CallPublicApi(uri);
+        }
+
+        /// <summary>
+        /// This API returns sell Bitcoin online ads. It is closely modeled after the online ad listings on LocalBitcoins.com.
+        /// </summary>
+        /// <param name="currency">Three letter currency code</param>
+        /// <param name="paymentMethod">An example of a valid argument is national-bank-transfer.</param>
+        /// <param name="page">Page number, by default 1</param>
+        /// <returns>Ads are returned in the same structure as /api/ads/.</returns>
+        public dynamic PublicMarket_SellBitcoinsOnlineByCurrency(string currency, string paymentMethod = null, int page = 1)
+        {
+            var uri = "/sell-bitcoins-online/" + currency + "/";
+            if (paymentMethod != null)
+                uri += paymentMethod + "/";
+
+            uri += ".json";
+
+            if (page > 1)
+                uri += "?page=" + page.ToString(CultureInfo.InvariantCulture);
+
+            return CallPublicApi(uri);
         }
     }
 }
