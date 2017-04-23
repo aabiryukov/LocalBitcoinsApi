@@ -65,6 +65,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="LocalBitcoinsApi.nuspec" />
     <None Include="LocalBitcoinsApi.ruleset" />
     <None Include="LocalBitcoinsApi.snk" />
     <None Include="packages.config">

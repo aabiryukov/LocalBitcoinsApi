@@ -11,7 +11,7 @@
     <iconUrl>https://raw.githubusercontent.com/aabiryukov/LocalBitcoinsApi/master/NugetPackageLogo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Initial release</releaseNotes>
+    <releaseNotes>Added AdEdit and public market API</releaseNotes>
     <copyright>Copyright (c) Alexander Biryukov 2017</copyright>
     <tags>LocalBitcoins Bitcoin API</tags>
   </metadata>
