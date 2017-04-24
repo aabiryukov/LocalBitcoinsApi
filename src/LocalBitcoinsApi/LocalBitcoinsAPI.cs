@@ -101,8 +101,7 @@ namespace LocalBitcoins
 
         private static string UrlEncodeString(string text)
         {
-            var result = WebUtility.UrlEncode(text);
-            result = result?.Replace("!", "%21");
+            var result = text == null ? "" : Uri.EscapeDataString(text).Replace("%20", "+");
             return result;
         }
 
@@ -561,19 +560,36 @@ namespace LocalBitcoins
                     {"price_equation", (string)adData.price_equation},
                     {"lon", (string)adData.lon},
                     {"countrycode", (string)adData.countrycode},
+                    {"currency", (string)adData.currency},
 
                     {"min_amount", (string)adData.min_amount},
                     {"max_amount", (string)adData.max_amount},
 
                     {"msg", (string)adData.msg},
-                    {"opening_hours", (string)adData.opening_hours},
                     {"require_identification", (string)adData.require_identification},
                     {"sms_verification_required", (string)adData.sms_verification_required},
                     {"require_trusted_by_advertiser", (string)adData.require_trusted_by_advertiser},
                     {"trusted_required", (string)adData.trusted_required},
                     {"track_max_amount", (string)adData.track_max_amount},
                     {"email", (string)adData.email},
+
+                    {"visible", (string)adData.visible},
                 };
+
+            if((string)adData.opening_hours != "null")
+            {
+                args["opening_hours"] = (string)adData.opening_hours;
+            }
+
+            if (!string.IsNullOrEmpty((string)adData.limit_to_fiat_amounts))
+            {
+                args["limit_to_fiat_amounts"] = (string)adData.limit_to_fiat_amounts;
+            }
+
+            if (!string.IsNullOrEmpty((string)adData.bank_name))
+            {
+                args["bank_name"] = (string)adData.bank_name;
+            }
 
             string phone_number = adData.account_details?.phone_number;
             if (adData.account_details?.phone_number != null)
@@ -597,10 +613,7 @@ namespace LocalBitcoins
 
             var args = ParseAdData(oldAd.data.ad_list[0].data);
 
-            if (visible)
-            {
-                args.Add("visible", "1");
-            }
+            args["visible"] = visible ? "1" : "0";
 
             return CallApi("/api/ad/" + adId + "/", RequestType.Post, args);
         }
