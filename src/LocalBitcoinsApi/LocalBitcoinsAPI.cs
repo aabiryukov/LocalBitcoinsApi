@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 namespace LocalBitcoins
 {
     // ReSharper disable once InconsistentNaming
-    public sealed class LocalBitcoinsAPI
+    public class LocalBitcoinsAPI
     {
         private const string DefaultApiUrl = "https://localbitcoins.net/";
         private const int DefaultApiTimeoutSec = 10;
@@ -40,20 +40,18 @@ namespace LocalBitcoins
             return buff.Aggregate("", (current, t) => current + t.ToString("X2", CultureInfo.InvariantCulture));
         }
 
-        private string GetSignature(string apiCommand, Dictionary<string, string> args, bool isGetRequest, string nonce)
+        private string GetSignature(string apiCommand, string nonce, Dictionary<string, string> args)
         {
-            return GetSignature(m_accessKey, m_secretKey, apiCommand, args, isGetRequest, nonce);
+            return GetSignature(m_accessKey, m_secretKey, apiCommand, nonce, args);
         }
 
-        public static string GetSignature(string accessKey, string secretKey, string apiCommand, Dictionary<string, string> args, bool isGetRequest, string nonce)
+        public static string GetSignature(string accessKey, string secretKey, string apiCommand, string nonce, Dictionary<string, string> args)
         {
             string paramsStr = null;
 
             if (args != null && args.Any())
             {
                 paramsStr = UrlEncodeParams(args);
-                if (isGetRequest)
-                    paramsStr = "?" + paramsStr;
             }
 
             var encoding = new ASCIIEncoding();
@@ -80,14 +78,18 @@ namespace LocalBitcoins
             return ret;
         }
 
-        private string GetSignature(string apiCommand, byte[] paramBytes, out string nonce)
+        private string GetSignatureBinary(string apiCommand, string nonce, byte[] paramBytes)
+        {
+            return GetSignatureBinary(m_accessKey, m_secretKey, apiCommand, nonce, paramBytes);
+        }
+
+        public static string GetSignatureBinary(string accessKey, string secretKey, string apiCommand, string nonce, byte[] paramBytes)
         {
             var encoding = new ASCIIEncoding();
-            var secretByte = encoding.GetBytes(m_secretKey);
+            var secretByte = encoding.GetBytes(secretKey);
             using (var hmacsha256 = new HMACSHA256(secretByte))
             {
-                nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
-                var message = nonce + m_accessKey + apiCommand;
+                var message = nonce + accessKey + apiCommand;
                 var messageByte = encoding.GetBytes(message);
                 if (paramBytes != null)
                 {
@@ -104,7 +106,6 @@ namespace LocalBitcoins
             var result = text == null ? "" : Uri.EscapeDataString(text).Replace("%20", "+");
             return result;
         }
-
 
         private static string UrlEncodeParams(Dictionary<string, string> args)
         {
@@ -124,19 +125,31 @@ namespace LocalBitcoins
         {
             HttpContent httpContent = null;
 
-            if (args != null && args.Any())
+            if (requestType == RequestType.Post)
             {
-                httpContent = new FormUrlEncodedContent(args);
+                if (args != null && args.Any())
+                {
+                    httpContent = new FormUrlEncodedContent(args);
+                }
             }
 
             try
             {
                 string nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
-                var signature = GetSignature(apiCommand, args, requestType == RequestType.Get, nonce);
+                var signature = GetSignature(apiCommand, nonce, args);
+
+                var relativeUrl = apiCommand;
+                if(requestType == RequestType.Get)
+                {
+                    if(args != null && args.Any())
+                    {
+                        relativeUrl += "?" + UrlEncodeParams(args);
+                    }
+                }
 
                 using (var request = new HttpRequestMessage(
                     requestType == RequestType.Get ? HttpMethod.Get : HttpMethod.Post,
-                    new Uri(m_client.BaseAddress, apiCommand)
+                    new Uri(m_client.BaseAddress, relativeUrl)
                     ))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -150,7 +163,7 @@ namespace LocalBitcoins
                     {
                         var resultAsString = response.Content.ReadAsStringAsync().Result;
                         var json = JsonConvert.DeserializeObject<dynamic>(resultAsString);
-                        throw new LocalBitcoinsException(apiCommand, json);
+                        throw new LocalBitcoinsException(true, apiCommand, json);
                     }
 
                     if (getAsBinary)
@@ -194,12 +207,12 @@ namespace LocalBitcoins
 
                 var bodyAsBytes = httpContent.ReadAsByteArrayAsync().Result;
 
-                string nonce;
-                var signature = GetSignature(apiCommand, bodyAsBytes, out nonce);
+                var nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
+                var signature = GetSignatureBinary(apiCommand, nonce, bodyAsBytes);
 
                 using (var request = new HttpRequestMessage(
                     HttpMethod.Post,
-                    new Uri(m_client.BaseAddress + apiCommand)
+                    new Uri(m_client.BaseAddress, apiCommand)
                     ))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -213,7 +226,7 @@ namespace LocalBitcoins
                     {
                         var resultAsString = response.Content.ReadAsStringAsync().Result;
                         var json = JsonConvert.DeserializeObject<dynamic>(resultAsString);
-                        throw new LocalBitcoinsException(apiCommand, json);
+                        throw new LocalBitcoinsException(true, apiCommand, json);
                     }
 
                     {
@@ -242,21 +255,21 @@ namespace LocalBitcoins
         /// </summary>
         /// <param name="accessKey">Your Access Key</param>
         /// <param name="secretKey">Your Secret Key</param>
-        public LocalBitcoinsAPI(string accessKey, string secretKey, string baseAddress = DefaultApiUrl, int apiTimeout = DefaultApiTimeoutSec)
+        /// <param name="apiTimeoutSec">API request timeout in seconds</param>
+        /// <param name="overrideBaseAddress">Override API base address. Default is "https://localbitcoins.net/"</param>
+        public LocalBitcoinsAPI(string accessKey, string secretKey, int apiTimeoutSec = DefaultApiTimeoutSec, string overrideBaseAddress = null)
         {
+            if (overrideBaseAddress == null)
+                overrideBaseAddress = DefaultApiUrl;
+
             m_accessKey = accessKey;
             m_secretKey = secretKey;
 
-            m_client = new HttpClient(/*new LoggingHandler(new HttpClientHandler())*/)
+            m_client = new HttpClient()
             {
-                BaseAddress = new Uri(baseAddress), // apiv3
-                Timeout = TimeSpan.FromSeconds(apiTimeout)
+                BaseAddress = new Uri(overrideBaseAddress), // apiv3
+                Timeout = TimeSpan.FromSeconds(apiTimeoutSec)
             };
-
-            // HttpWebRequest setups
-            //            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //for https
-            //            ServicePointManager.DefaultConnectionLimit = 1; //one concurrent connection is allowed for this server atm.
-            //ServicePointManager.UseNagleAlgorithm = false;
         }
 
         // Returns public user profile information
@@ -334,16 +347,9 @@ namespace LocalBitcoins
             return CallApi("/api/contact_messages/" + contactId + "/");
         }
 
-        public byte[] GetContactMessageAttachment(string attachmentUrl)
+        public byte[] GetContactMessageAttachment(string contractId, string attachmentId)
         {
-            if (string.IsNullOrEmpty(attachmentUrl))
-                throw new ArgumentNullException(nameof(attachmentUrl));
-
-            var index = attachmentUrl.IndexOf("/api/", StringComparison.OrdinalIgnoreCase);
-            if (index < 0)
-                throw new ArgumentOutOfRangeException(nameof(attachmentUrl));
-
-            return CallApi(attachmentUrl.Remove(0, index), RequestType.Get, null, true);
+            return CallApi($"/api/contact_message_attachment/{contractId}/{attachmentId}/", RequestType.Get, null, true);
         }
 
         // Marks a contact as paid.
@@ -352,18 +358,6 @@ namespace LocalBitcoins
         {
             return CallApi("/api/contact_mark_as_paid/" + contactId + "/");
         }
-
-        /*
-                // Post a message to contact
-                public dynamic PostMessageToContact(string contactId, string message)
-                {
-                    var args = new NameValueDictionary
-                    {
-                        {"msg", message},
-                    };
-                    return CallApi("/api/contact_message_post/" + contactId + "/", RequestType.Post, args);
-                }
-        */
 
         // Post a message to contact
         public dynamic PostMessageToContact(string contactId, string message, string attachFileName = null)
@@ -537,13 +531,23 @@ namespace LocalBitcoins
         // Refer to the ad editing pages for the field meanings.List item structure is like so:
         public dynamic GetOwnAds()
         {
-            return CallApi("/api/ads/", RequestType.Post);
+            return CallApi("/api/ads/", RequestType.Get);
         }
 
         // Get ad
         public dynamic GetAd(string adId)
         {
             return CallApi("/api/ad-get/" + adId + "/");
+        }
+
+        public dynamic GetAdList(IEnumerable<string> adList)
+        {
+            var args = new Dictionary<string, string>
+                {
+                    {"ads", string.Join(",", adList) },
+                };
+
+            return CallApi("/api/ad-get/", RequestType.Get, args);
         }
 
         // Delete ad
@@ -650,6 +654,20 @@ namespace LocalBitcoins
             }
 
             return CallApi("/api/ad/" + adId + "/", RequestType.Post, args);
+        }
+
+        // Edit ad Price equation formula
+        public dynamic EditAdPriceEquation(string adId, decimal priceEquation)
+        {
+            if (priceEquation <= 0)
+                throw new ArgumentOutOfRangeException(nameof(priceEquation));
+
+            var args = new Dictionary<string, string>()
+            {
+                ["price_equation"] = priceEquation.ToString(CultureInfo.InvariantCulture)
+            };
+
+            return CallApi("/api/ad-equation/" + adId + "/", RequestType.Post, args);
         }
 
         // Retrieves recent notifications.

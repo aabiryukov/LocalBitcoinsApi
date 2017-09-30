@@ -28,7 +28,7 @@ namespace LocalbitcoinsApiTest
 //            info = client.GetContactMessages("7652822");
 //            Console.WriteLine("Res: " + info.ToString());
 
-            info = client.GetContactMessageAttachment("/api/contact_message_attachment/6652854/38026599/");
+            info = client.GetContactMessageAttachment("6652854", "38026599");
             File.WriteAllBytes(@"c:\temp\LBImage.jpeg", info); // Requires System.IO
             Console.WriteLine("Res: " + info.Length);
 
