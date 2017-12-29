@@ -520,6 +520,12 @@ namespace LocalBitcoins
             return CallApi("/api/wallet-addr/", RequestType.Post);
         }
 
+        // Gets the current outgoing and deposit fees in bitcoins (BTC).
+        public dynamic GetFees()
+        {
+            return CallApi("/api/fees/", RequestType.Get);
+        }
+
         // Expires the current access token immediately.
         // To get a new token afterwards, public apps will need to reauthenticate, confidential apps can turn in a refresh token.
         public dynamic Logout()

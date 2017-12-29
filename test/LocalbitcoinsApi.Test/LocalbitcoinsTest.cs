@@ -53,6 +53,9 @@ namespace LocalbitcoinsApiTest
 
             info = client.Logout();
             Console.WriteLine("Logout: " + info.ToString());
+
+            info = client.GetFees();
+            Console.WriteLine("Deposit Fee: " + info.data.deposit_fee);
         }
 
     }
