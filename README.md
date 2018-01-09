@@ -1,6 +1,8 @@
 # LocalBitcoinsApi
 It is LocalBitcoins.com API .NET Library
 
+Package in Nuget: https://www.nuget.org/packages/LocalBitcoinsApi/
+
 This LocalBitcoins.com API wrapper written in C# provides a quick access to most available LocalBitcoins features.
 Original API documentation available on the official web site: https://localbitcoins.com/api-docs/
 
@@ -30,8 +32,3 @@ var contactUrl = lbClient.CreateContact("11534457", 0.1M, "My message")
 // Full list of methods you can find in the project sources
 ```
 
-If you find the library useful and would like to donate, please send some bitcoins here:
-
-```
-BTC 1EMohdsDGtqqYCR8e26etLPX6jQbceHp5R
-```
