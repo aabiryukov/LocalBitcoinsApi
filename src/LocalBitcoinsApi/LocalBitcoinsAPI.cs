@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace LocalBitcoins
@@ -30,9 +27,10 @@ namespace LocalBitcoins
 
         private static readonly DateTime st_unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        private static long GetCurrentUnixTimestampMillis()
+        private static string GetNonce()
         {
-            return (long)(DateTime.UtcNow - st_unixEpoch).TotalMilliseconds;
+            var nonce = (long)((DateTime.UtcNow - st_unixEpoch).TotalMilliseconds * 1000);
+            return nonce.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string ByteToString(IEnumerable<byte> buff)
@@ -135,7 +133,7 @@ namespace LocalBitcoins
 
             try
             {
-                string nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
+                var nonce = GetNonce();
                 var signature = GetSignature(apiCommand, nonce, args);
 
                 var relativeUrl = apiCommand;
@@ -207,7 +205,7 @@ namespace LocalBitcoins
 
                 var bodyAsBytes = httpContent.ReadAsByteArrayAsync().Result;
 
-                var nonce = GetCurrentUnixTimestampMillis().ToString(CultureInfo.InvariantCulture);
+                var nonce = GetNonce();
                 var signature = GetSignatureBinary(apiCommand, nonce, bodyAsBytes);
 
                 using (var request = new HttpRequestMessage(
@@ -238,16 +236,10 @@ namespace LocalBitcoins
             }
         }
 
-        //		private class NameValueDictionary : SortedDictionary<string, string>{}
-
-        //        private const int ApiTimeoutSeconds = 10;
-        //        private readonly string BaseAddress;
         private readonly HttpClient m_client;
 
         private readonly string m_accessKey;
         private readonly string m_secretKey;
-        //constants
-        //        private const int BTCChinaConnectionLimit = 1;
 
 
         /// <summary>
