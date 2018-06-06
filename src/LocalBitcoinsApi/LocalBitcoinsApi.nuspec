@@ -11,8 +11,8 @@
     <iconUrl>https://raw.githubusercontent.com/aabiryukov/LocalBitcoinsApi/master/NugetPackageLogo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Added GetFees()</releaseNotes>
-    <copyright>Copyright (c) Alexander Biryukov 2017</copyright>
+    <releaseNotes>Incremented Nonce frequency</releaseNotes>
+    <copyright>Copyright (c) Alexander Biryukov 2018</copyright>
     <tags>LocalBitcoins Bitcoin API</tags>
   </metadata>
 </package>
