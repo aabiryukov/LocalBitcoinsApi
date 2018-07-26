@@ -1,3 +1,5 @@
+[![Nuget.org](https://img.shields.io/nuget/v/LocalBitcoinsApi.svg?style=flat)](https://www.nuget.org/packages/LocalBitcoinsApi)
+
 # LocalBitcoinsApi
 It is LocalBitcoins.com API .NET Library
 
