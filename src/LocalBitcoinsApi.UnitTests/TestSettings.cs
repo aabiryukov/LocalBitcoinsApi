@@ -1,4 +1,4 @@
-﻿namespace LocalbitcoinsApiTest
+﻿namespace LocalBitcoinsApi.UnitTests
 {
     internal class TestSettings
     {

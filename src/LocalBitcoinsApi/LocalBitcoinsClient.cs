@@ -11,9 +11,9 @@ namespace LocalBitcoins
     public class LocalBitcoinsClient
     {
         private const int DefaultApiTimeoutSec = 10;
-        private LocalBitcoinsRestApi _restApi;
+        private readonly LocalBitcoinsRestApi _restApi;
 
-        private static JsonSerializer _serializer = JsonSerializer.Create(new JsonSerializerSettings()
+        private static readonly JsonSerializer _serializer = JsonSerializer.Create(new JsonSerializerSettings()
         {
             DateTimeZoneHandling = DateTimeZoneHandling.Utc
         });
@@ -32,16 +32,21 @@ namespace LocalBitcoins
             _restApi = new LocalBitcoinsRestApi(accessKey, secretKey, apiTimeoutSec, overrideBaseAddress);
         }
 
+        protected virtual async Task<dynamic> CallApiAsync(string apiCommand, RequestType requestType = RequestType.Get, Dictionary<string, string> args = null)
+        {
+            return await _restApi.CallApiAsync(apiCommand).ConfigureAwait(false);
+        }
+
         // Returns public user profile information
         public async Task<dynamic> GetAccountInfo(string userName)
         {
-            return await _restApi.CallApiAsync("/api/account_info/" + userName + "/").ConfigureAwait(false);
+            return await CallApiAsync("/api/account_info/" + userName + "/").ConfigureAwait(false);
         }
 
         // Return the information of the currently logged in user(the owner of authentication token).
         public async Task<dynamic> GetMyself()
         {
-            return await _restApi.CallApiAsync("/api/myself/").ConfigureAwait(false);
+            return await CallApiAsync("/api/myself/").ConfigureAwait(false);
         }
 
         // Checks the given PIN code against the user"s currently active PIN code.
@@ -53,38 +58,38 @@ namespace LocalBitcoins
                 {"code", code},
             };
 
-            return await _restApi.CallApiAsync("/api/pincode/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/pincode/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Return open and active contacts
         public async Task<dynamic> GetDashboard()
         {
-            return await _restApi.CallApiAsync("/api/dashboard/").ConfigureAwait(false);
+            return await CallApiAsync("/api/dashboard/").ConfigureAwait(false);
         }
 
         // Return released(successful) contacts
         public async Task<dynamic> GetDashboardReleased()
         {
-            return await _restApi.CallApiAsync("/api/dashboard/released/").ConfigureAwait(false);
+            return await CallApiAsync("/api/dashboard/released/").ConfigureAwait(false);
         }
 
         // Return canceled contacts
         public async Task<dynamic> GetDashboardCanceled()
         {
-            return await _restApi.CallApiAsync("/api/dashboard/canceled/").ConfigureAwait(false);
+            return await CallApiAsync("/api/dashboard/canceled/").ConfigureAwait(false);
         }
 
         // Return closed contacts, both released and canceled
         public async Task<dynamic> GetDashboardClosed()
         {
-            return await _restApi.CallApiAsync("/api/dashboard/closed/").ConfigureAwait(false);
+            return await CallApiAsync("/api/dashboard/closed/").ConfigureAwait(false);
         }
 
         // Releases the escrow of contact specified by ID { contact_id }.
         // On success there"s a complimentary message on the data key.
         public async Task<dynamic> ContactRelease(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_release/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_release/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
         }
 
         // Releases the escrow of contact specified by ID { contact_id }.
@@ -96,7 +101,7 @@ namespace LocalBitcoins
                 {"pincode", pincode},
             };
 
-            return await _restApi.CallApiAsync("/api/contact_release_pin/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_release_pin/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Reads all messaging from the contact.Messages are on the message_list key.
@@ -104,7 +109,7 @@ namespace LocalBitcoins
         // attachment_* fields exist only if there is an attachment.
         public async Task<dynamic> GetContactMessages(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_messages/" + contactId + "/").ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_messages/" + contactId + "/").ConfigureAwait(false);
         }
 
         public async Task<byte[]> GetContactMessageAttachment(string contractId, string attachmentId)
@@ -116,7 +121,7 @@ namespace LocalBitcoins
         // It is recommended to access this API through /api/online_buy_contacts/ entries" action key.
         public async Task<dynamic> MarkContactAsPaid(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_mark_as_paid/" + contactId + "/").ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_mark_as_paid/" + contactId + "/").ConfigureAwait(false);
         }
 
         // Post a message to contact
@@ -150,19 +155,19 @@ namespace LocalBitcoins
                 };
             }
 
-            return await _restApi.CallApiAsync("/api/contact_dispute/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_dispute/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Cancels the contact, if possible
         public async Task<dynamic> CancelContact(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_cancel/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_cancel/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
         }
 
         // Attempts to fund an unfunded local contact from the seller"s wallet.
         public async Task<dynamic> FundContact(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_fund/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_fund/" + contactId + "/", RequestType.Post).ConfigureAwait(false);
         }
 
         // Attempts to create a contact to trade bitcoins.
@@ -180,14 +185,14 @@ namespace LocalBitcoins
             if (message != null)
                 args.Add("message", message);
 
-            return await _restApi.CallApiAsync("/api/contact_create/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_create/" + contactId + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
 
         // Gets information about a single contact you are involved in. Same fields as in /api/contacts/.
         public async Task<dynamic> GetContactInfo(string contactId)
         {
-            return await _restApi.CallApiAsync("/api/contact_info/" + contactId + "/").ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_info/" + contactId + "/").ConfigureAwait(false);
         }
 
         // contacts is a comma-separated list of contact IDs that you want to access in bulk.
@@ -200,7 +205,7 @@ namespace LocalBitcoins
             {
                 {"contacts", contacts},
             };
-            return await _restApi.CallApiAsync("/api/contact_info/", RequestType.Get, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/contact_info/", RequestType.Get, args).ConfigureAwait(false);
         }
 
         // Returns maximum of 50 newest trade messages.
@@ -208,7 +213,7 @@ namespace LocalBitcoins
         // The list has same format as /api/contact_messages/, but each message has also contact_id field.
         public async Task<dynamic> GetRecentMessages()
         {
-            return await _restApi.CallApiAsync("/api/recent_messages/").ConfigureAwait(false);
+            return await CallApiAsync("/api/recent_messages/").ConfigureAwait(false);
         }
 
         // Gives feedback to user.
@@ -224,13 +229,13 @@ namespace LocalBitcoins
             if (message != null)
                 args.Add("msg", message);
 
-            return await _restApi.CallApiAsync("/api/feedback/" + userName + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/feedback/" + userName + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Gets information about the token owner"s wallet balance.
         public async Task<dynamic> GetWallet()
         {
-            return await _restApi.CallApiAsync("/api/wallet/").ConfigureAwait(false);
+            return await CallApiAsync("/api/wallet/").ConfigureAwait(false);
         }
 
         // Same as / api / wallet / above, but only returns the message, receiving_address_list and total fields.
@@ -238,7 +243,7 @@ namespace LocalBitcoins
         // Use this instead if you don"t care about transactions at the moment.
         public async Task<dynamic> GetWalletBalance()
         {
-            return await _restApi.CallApiAsync("/api/wallet-balance/").ConfigureAwait(false);
+            return await CallApiAsync("/api/wallet-balance/").ConfigureAwait(false);
         }
 
         // Sends amount bitcoins from the token owner"s wallet to address.
@@ -254,7 +259,7 @@ namespace LocalBitcoins
                 {"address", address},
             };
 
-            return await _restApi.CallApiAsync("/api/wallet-send/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/wallet-send/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // As above, but needs the token owner"s active PIN code to succeed.
@@ -270,40 +275,40 @@ namespace LocalBitcoins
                 {"pincode", pincode},
             };
 
-            return await _restApi.CallApiAsync("/api/wallet-send-pin/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/wallet-send-pin/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Gets an unused receiving address for the token owner"s wallet, its address given in the address key of the response.
         // Note that this API may keep returning the same(unused) address if called repeatedly.
         public async Task<dynamic> GetWalletAddress()
         {
-            return await _restApi.CallApiAsync("/api/wallet-addr/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/wallet-addr/", RequestType.Post).ConfigureAwait(false);
         }
 
         // Gets the current outgoing and deposit fees in bitcoins (BTC).
         public async Task<dynamic> GetFees()
         {
-            return await _restApi.CallApiAsync("/api/fees/", RequestType.Get).ConfigureAwait(false);
+            return await CallApiAsync("/api/fees/", RequestType.Get).ConfigureAwait(false);
         }
 
         // Expires the current access token immediately.
         // To get a new token afterwards, public apps will need to reauthenticate, confidential apps can turn in a refresh token.
         public async Task<dynamic> Logout()
         {
-            return await _restApi.CallApiAsync("/api/logout/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/logout/", RequestType.Post).ConfigureAwait(false);
         }
 
         // Lists the token owner"s all ads on the data key ad_list, optionally filtered. If there"s a lot of ads, the listing will be paginated.
         // Refer to the ad editing pages for the field meanings.List item structure is like so:
         public async Task<dynamic> GetOwnAds()
         {
-            return await _restApi.CallApiAsync("/api/ads/", RequestType.Get).ConfigureAwait(false);
+            return await CallApiAsync("/api/ads/", RequestType.Get).ConfigureAwait(false);
         }
 
         // Get ad
         public async Task<dynamic> GetAd(string adId)
         {
-            return await _restApi.CallApiAsync("/api/ad-get/" + adId + "/").ConfigureAwait(false);
+            return await CallApiAsync("/api/ad-get/" + adId + "/").ConfigureAwait(false);
         }
 
         public async Task<dynamic> GetAdList(IEnumerable<string> adList)
@@ -313,13 +318,13 @@ namespace LocalBitcoins
                     {"ads", string.Join(",", adList) },
                 };
 
-            return await _restApi.CallApiAsync("/api/ad-get/", RequestType.Get, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/ad-get/", RequestType.Get, args).ConfigureAwait(false);
         }
 
         // Delete ad
         public async Task<dynamic> DeleteAd(string adId)
         {
-            return await _restApi.CallApiAsync("/api/ad-delete/" + adId + "/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/ad-delete/" + adId + "/", RequestType.Post).ConfigureAwait(false);
         }
 
         private static Dictionary<string, string> ParseAdData(dynamic adData)
@@ -385,7 +390,7 @@ namespace LocalBitcoins
 
             args["visible"] = visible ? "1" : "0";
 
-            return await _restApi.CallApiAsync("/api/ad/" + adId + "/", RequestType.Post, args);
+            return await CallApiAsync("/api/ad/" + adId + "/", RequestType.Post, args);
         }
 
         // Edit ad
@@ -419,7 +424,7 @@ namespace LocalBitcoins
                 args = values;
             }
 
-            return await _restApi.CallApiAsync("/api/ad/" + adId + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/ad/" + adId + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Edit ad Price equation formula
@@ -433,19 +438,19 @@ namespace LocalBitcoins
                 ["price_equation"] = priceEquation.ToString(CultureInfo.InvariantCulture)
             };
 
-            return await _restApi.CallApiAsync("/api/ad-equation/" + adId + "/", RequestType.Post, args).ConfigureAwait(false);
+            return await CallApiAsync("/api/ad-equation/" + adId + "/", RequestType.Post, args).ConfigureAwait(false);
         }
 
         // Retrieves recent notifications.
         public async Task<dynamic> GetNotifications()
         {
-            return await _restApi.CallApiAsync("/api/notifications/").ConfigureAwait(false);
+            return await CallApiAsync("/api/notifications/").ConfigureAwait(false);
         }
 
         // Marks specific notification as read.
         public async Task<dynamic> NotificationMarkAsRead(string notificationId)
         {
-            return await _restApi.CallApiAsync("/api/notifications/mark_as_read/" + notificationId + "/", RequestType.Post).ConfigureAwait(false);
+            return await CallApiAsync("/api/notifications/mark_as_read/" + notificationId + "/", RequestType.Post).ConfigureAwait(false);
         }
 
         /// <summary>

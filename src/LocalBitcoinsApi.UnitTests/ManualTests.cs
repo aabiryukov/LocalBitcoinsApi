@@ -1,15 +1,20 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using LocalBitcoins;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
-namespace LocalbitcoinsApiTest
+namespace LocalBitcoinsApi.UnitTests
 {
-    // ReSharper disable once InconsistentNaming
-    internal static class LocalbitcoinsTest
+#if (!DEBUG)
+    [Ignore]
+#endif
+    [TestClass]
+    public class ManualTests
     {
-        public static async Task Test()
+        [TestMethod]
+        public async Task TestRealApiMethods()
         {
             // Read settings from file "TestSettings.json"
             var testSettings = GetSettings();
@@ -64,7 +69,12 @@ namespace LocalbitcoinsApiTest
             const string overrideSettingsFile = "TestSettings.override.json";
 
             var settingsFile = File.Exists(overrideSettingsFile) ? overrideSettingsFile : defaultSettingsFile;
-            return JsonConvert.DeserializeObject<TestSettings>(File.ReadAllText(settingsFile));
+            var settings = JsonConvert.DeserializeObject<TestSettings>(File.ReadAllText(settingsFile));
+
+            if (string.IsNullOrEmpty(settings.ApiKey) || settings.ApiKey == "INSERT-KEY-HERE")
+                throw new Exception($"Fill settings in file {settingsFile}");
+
+            return settings;
         }
     }
 }

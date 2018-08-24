@@ -1,6 +1,6 @@
 ﻿namespace LocalBitcoins
 {
-    internal enum RequestType
+    public enum RequestType
     {
         Get,
         Post

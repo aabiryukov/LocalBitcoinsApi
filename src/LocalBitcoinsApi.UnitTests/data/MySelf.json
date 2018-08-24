@@ -1,0 +1,20 @@
+{
+    "data": {
+        "username": "bitcoinbaron",
+        "created_at": "2013-06-25T14:11:30+00:00",
+        "trading_partners_count": 0,
+        "feedbacks_unconfirmed_count": 0,
+        "trade_volume_text": "Less than 25 BTC",
+        "has_common_trades": false,
+        "confirmed_trade_count_text": "0",
+        "blocked_count": 0,
+        "feedback_score": 0,
+        "feedback_count": 0,
+        "url": "https://localbitcoins.com/p/bitcoinbaron/",
+        "trusted_count": 0,
+        "identity_verified_at": null,
+        "real_name_verifications_trusted": 1,
+        "real_name_verifications_untrusted": 4,
+        "real_name_verifications_rejected": 0
+    }
+}

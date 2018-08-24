@@ -1,0 +1,8 @@
+language: csharp
+mono: none
+solution: LocalBitcoinsApi.sln
+dotnet: 2.0.0
+dist: trusty
+script:
+ - dotnet build src/LocalBitcoinsApi/LocalBitcoinsApi.csproj --framework "netstandard2.0"
+ - dotnet test src/LocalBitcoinsApi/LocalBitcoinsApi.UnitTests.csproj

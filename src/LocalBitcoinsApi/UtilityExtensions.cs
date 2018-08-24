@@ -5,6 +5,7 @@ namespace LocalBitcoins
 {
     internal static class UtilityExtensions
     {
+/*
         /// <summary>
         /// Waits for the task to complete, unwrapping any exceptions.
         /// </summary>
@@ -15,7 +16,7 @@ namespace LocalBitcoins
                 throw new ArgumentNullException(nameof(task));
             task.GetAwaiter().GetResult();
         }
-
+*/
         /// <summary>
         /// Waits for the task to complete, unwrapping any exceptions.
         /// </summary>
