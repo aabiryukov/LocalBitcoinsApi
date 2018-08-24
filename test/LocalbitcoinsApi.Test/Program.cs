@@ -9,7 +9,7 @@ namespace LocalbitcoinsApiTest
 	{
 		static void Main(string[] args) 
 		{
-			LocalbitcoinsTest.Test();
+			LocalbitcoinsTest.Test().Wait();
 		}
 	}
 }

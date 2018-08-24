@@ -1,62 +1,70 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using LocalBitcoins;
+using Newtonsoft.Json;
 
 namespace LocalbitcoinsApiTest
 {
-// ReSharper disable once InconsistentNaming
+    // ReSharper disable once InconsistentNaming
     internal static class LocalbitcoinsTest
     {
-        private const string ApiKey = "INSERT-KEY-HERE";
-        private const string ApiSecret = "INSERT-SECRET-HERE";
-
-        public static void Test()
+        public static async Task Test()
         {
-            var client = new LocalBitcoinsAPI(ApiKey, ApiSecret);
+            // Read settings from file "TestSettings.json"
+            var testSettings = GetSettings();
+
+            var client = new LocalBitcoinsClient(testSettings.ApiKey, testSettings.ApiKey);
 
             dynamic info;
 
-            info = client.GetRecentMessages();
-            Console.WriteLine("Res: " + info.ToString());
+            //            info = client.GetContactMessages("7652822");
+            //            Console.WriteLine("Res: " + info.ToString());
 
-            info = client.GetDashboardReleased();
-            Console.WriteLine("Res: " + info.ToString());
 
-//            info = client.GetContactMessages("7652822");
-//            Console.WriteLine("Res: " + info.ToString());
+            info = await client.GetMyself();
+            Console.WriteLine("Myself: " + info.data.username);
 
-            info = client.GetContactMessageAttachment("6652854", "38026599");
+            info = await client.GetWalletBalance();
+            Console.WriteLine("Wallet Balance: " + (decimal)(info.data.total.balance));
+
+            //            info = client.CheckPinCode("8044011");
+            //            Console.WriteLine("Pincode: " + info);
+
+            // Update user online
+            info = await client.GetDashboard();
+            Console.WriteLine("Dashboard: " + info.ToString());
+
+            info = await client.GetOwnAds();
+            Console.WriteLine("Ads: " + info.ToString());
+
+            info = await client.GetContactMessageAttachment("6652854", "38026599");
             File.WriteAllBytes(@"c:\temp\LBImage.jpeg", info); // Requires System.IO
             Console.WriteLine("Res: " + info.Length);
 
-            info = client.GetOwnAds();
-            Console.WriteLine("Ads: " + info.ToString());
+            info = await client.GetRecentMessages();
+            Console.WriteLine("Res: " + info.ToString());
 
-            info = client.GetMyself();
-            Console.WriteLine("Myself: " + info.data.username);
+            info = await client.GetDashboardReleased();
+            Console.WriteLine("Res: " + info.ToString());
 
-            info = client.GetAccountInfo("SomeAccountName");
+            info = await client.GetFees();
+            Console.WriteLine("Deposit Fee: " + info.data.deposit_fee);
+
+            info = await client.GetAccountInfo("SomeAccountName");
             Console.WriteLine("User: " + info.data.username);
 
-//            info = client.CheckPinCode("8044011");
-//            Console.WriteLine("Pincode: " + info);
-
-            // Update user online
-            info = client.GetDashboard();
-            Console.WriteLine("Dashboard: " + info.ToString());
-
-            info = client.GetWalletBalance();
-            Console.WriteLine("Wallet Balance: " + (decimal)(info.data.total.balance));
-
-            info = client.Logout();
+            info = await client.Logout();
             Console.WriteLine("Logout: " + info.ToString());
-
-            info = client.GetFees();
-            Console.WriteLine("Deposit Fee: " + info.data.deposit_fee);
         }
 
+        private static TestSettings GetSettings()
+        {
+            const string defaultSettingsFile = "TestSettings.json";
+            const string overrideSettingsFile = "TestSettings.override.json";
+
+            var settingsFile = File.Exists(overrideSettingsFile) ? overrideSettingsFile : defaultSettingsFile;
+            return JsonConvert.DeserializeObject<TestSettings>(File.ReadAllText(settingsFile));
+        }
     }
 }
