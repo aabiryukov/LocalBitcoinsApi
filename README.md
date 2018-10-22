@@ -15,21 +15,23 @@ To install LocalBitcoinsApi with Nuget, run the following command in the Package
 PM> Install-Package LocalBitcoinsApi
 ```
 # Code examples
-To create an instance of LocalBitcoinsApi:
+To create an instance of LocalBitcoinsClient:
 ```
 var apiKey = "Your_Key";
 var apiSecret = "Your_Secret";
-var lbClient = new LocalBitcoinsAPI(apiKey, apiSecret);
+var lbClient = new LocalBitcoinsClient(apiKey, apiSecret);
 ```
 After creating an instance next and more API methods are available:
 ```
-var mySelf = lbClient.GetMyself();
-var accountInfo = lbClient.GetAccountInfo("SomeAccountName");
-var dashboard = lbClient.GetDashboard();
-var ownAds = lbClient.GetOwnAds();
-var walletBalance = lbClient.GetWalletBalance();
-var contactInfo = lbClient.GetContactInfo("7652822");
-var contactUrl = lbClient.CreateContact("11534457", 0.1M, "My message")
+var mySelf = await lbClient.GetMyself();
+Console.WriteLine("My name is: " + mySelf.data.username);
+
+var accountInfo = await lbClient.GetAccountInfo("SomeAccountName");
+var dashboard = await lbClient.GetDashboard();
+var ownAds = await lbClient.GetOwnAds();
+var walletBalance = await lbClient.GetWalletBalance();
+var contactInfo = await lbClient.GetContactInfo("7652822");
+var contactUrl = await lbClient.CreateContact("11534457", 0.1M, "My message");
 
 // Full list of methods you can find in the project sources
 ```
