@@ -48,8 +48,8 @@ namespace LocalBitcoins
             return json;
         }
 
-        public async Task<dynamic> CallApiAsync(string apiCommand, RequestType requestType = RequestType.Get,
-            Dictionary<string, string> args = null, bool getAsBinary = false)
+        public async Task<dynamic> CallApiAsync(string apiCommand, RequestType requestType,
+            Dictionary<string, string> args, bool getAsBinary = false)
         {
             HttpContent httpContent = null;
 

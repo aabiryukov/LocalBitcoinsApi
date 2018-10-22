@@ -13,11 +13,6 @@ namespace LocalBitcoins
         private const int DefaultApiTimeoutSec = 10;
         private readonly LocalBitcoinsRestApi _restApi;
 
-        private static readonly JsonSerializer _serializer = JsonSerializer.Create(new JsonSerializerSettings()
-        {
-            DateTimeZoneHandling = DateTimeZoneHandling.Utc
-        });
-
         private class NameValueDictionary : Dictionary<string, string> { }
 
         /// <summary>
@@ -34,7 +29,7 @@ namespace LocalBitcoins
 
         protected virtual async Task<dynamic> CallApiAsync(string apiCommand, RequestType requestType = RequestType.Get, Dictionary<string, string> args = null)
         {
-            return await _restApi.CallApiAsync(apiCommand).ConfigureAwait(false);
+            return await _restApi.CallApiAsync(apiCommand, requestType, args).ConfigureAwait(false);
         }
 
         // Returns public user profile information
