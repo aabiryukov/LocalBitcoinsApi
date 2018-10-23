@@ -17,12 +17,11 @@
     <PackageTags>LocalBitcoins Bitcoin API</PackageTags>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
-    <Version>2.0.1</Version>
+    <Version>2.0.2</Version>
     <Product>LocalBitcoins .Net API</Product>
     <PackageReleaseNotes>- Added async/await client (class LocalBitcoinsClient)
 - Migrated to .Net Standard 2.0
-- Class LocalBitcoinsApi is obslolete, use LocalBitcoinsClient instead
-- Fixed assembly sign</PackageReleaseNotes>
+- Class LocalBitcoinsApi is obslolete, use LocalBitcoinsClient instead</PackageReleaseNotes>
     <NeutralLanguage />
   </PropertyGroup>
 

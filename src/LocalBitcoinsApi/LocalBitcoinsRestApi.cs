@@ -40,9 +40,9 @@ namespace LocalBitcoins
 
         #region Public Methods
 
-        public async Task<dynamic> CallPublicApiAsync(string requestUri)
+        public async Task<dynamic> CallPublicApiAsync(string relativeUrl)
         {
-            var response = await _client.GetAsync(new Uri(requestUri)).ConfigureAwait(false);
+            var response = await _client.GetAsync(relativeUrl).ConfigureAwait(false);
             var resultAsString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var json = JsonConvert.DeserializeObject<dynamic>(resultAsString);
             return json;
