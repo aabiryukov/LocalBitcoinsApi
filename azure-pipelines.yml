@@ -14,12 +14,14 @@ steps:
   displayName: 'dotnet build $(buildConfiguration)'
 
 - task: DotNetCoreCLI@2
+  displayName: 'Run tests'
   inputs:
     command: test
     projects: '**/*Tests/*.csproj'
     arguments: '--configuration $(buildConfiguration)'
 
 - task: CopyFiles@2
+  displayName: 'Copy files'
   inputs:
     #sourceFolder: # Optional
     contents: src/LocalBitcoinsApi/bin/**
