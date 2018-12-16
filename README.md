@@ -1,3 +1,4 @@
+[![Build Status](https://sitronics.visualstudio.com/GithubPipelineTest/_apis/build/status/aabiryukov.LocalBitcoinsApi?branchName=master)](https://sitronics.visualstudio.com/GithubPipelineTest/_build/latest?definitionId=25?branchName=master)
 [![Nuget.org](https://img.shields.io/nuget/v/LocalBitcoinsApi.svg?style=flat)](https://www.nuget.org/packages/LocalBitcoinsApi)
 
 # LocalBitcoinsApi
