@@ -19,7 +19,7 @@ namespace LocalBitcoinsApi.UnitTests
             // Read settings from file "TestSettings.json"
             var testSettings = GetSettings();
 
-            var client = new LocalBitcoinsClient(testSettings.ApiKey, testSettings.ApiKey);
+            var client = new LocalBitcoinsClient(testSettings.ApiKey, testSettings.ApiSecret);
 
             dynamic info;
 
